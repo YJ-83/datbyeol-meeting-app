@@ -1,6 +1,6 @@
 # ⚓ 닻별 모임 관리 시스템
 
-[![GitHub Pages](https://img.shields.io/badge/demo-live-brightgreen)](https://USERNAME.github.io/datbyeol-meeting-app/)
+[![GitHub Pages](https://img.shields.io/badge/demo-live-brightgreen)](https://yj-83.github.io/datbyeol-meeting-app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > 회원 정보 및 회비를 체계적으로 관리하는 웹 애플리케이션
@@ -12,12 +12,12 @@
 ## 🚀 빠른 시작
 
 ### 온라인에서 바로 사용
-👉 **[여기를 클릭하여 바로 시작하기](https://USERNAME.github.io/datbyeol-meeting-app/)**
+👉 **[여기를 클릭하여 바로 시작하기](https://yj-83.github.io/datbyeol-meeting-app/)**
 
 ### 로컬에서 사용
 1. 이 저장소를 다운로드하거나 클론:
    ```bash
-   git clone https://github.com/USERNAME/datbyeol-meeting-app.git
+   git clone https://github.com/YJ-83/datbyeol-meeting-app.git
    ```
 2. `index.html` 파일을 브라우저에서 열기
 
@@ -200,7 +200,7 @@
 이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
 ## 📧 문의
-- GitHub Issues: [여기에서 이슈 등록](https://github.com/USERNAME/datbyeol-meeting-app/issues)
+- GitHub Issues: [여기에서 이슈 등록](https://github.com/YJ-83/datbyeol-meeting-app/issues)
 - 이메일: 닻별 모임 관리자에게 문의하세요
 
 ## ⭐ 스타 주기

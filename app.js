@@ -172,7 +172,7 @@ function renderMembers() {
     tbody.innerHTML = '';
 
     if (members.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:#999;">등록된 회원이 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#999;">등록된 회원이 없습니다.</td></tr>';
         document.getElementById('total-members').textContent = '0';
         return;
     }
@@ -182,6 +182,7 @@ function renderMembers() {
         tr.innerHTML = `
             <td>${index + 1}</td>
             <td>${member.name}</td>
+            <td>${member.nickname || '-'}</td>
             <td>${maskSSN(member.ssn)}</td>
             <td>${member.phone}</td>
             <td>${member.joinDate}</td>
@@ -210,6 +211,7 @@ function handleMemberSubmit(e) {
 
     const memberData = {
         name: document.getElementById('member-name').value,
+        nickname: document.getElementById('member-nickname').value,
         ssn: document.getElementById('member-ssn').value,
         phone: document.getElementById('member-phone').value,
         joinDate: document.getElementById('member-join-date').value
@@ -236,6 +238,7 @@ function editMember(index) {
 
     document.getElementById('member-modal-title').textContent = '회원 수정';
     document.getElementById('member-name').value = member.name;
+    document.getElementById('member-nickname').value = member.nickname || '';
     document.getElementById('member-ssn').value = member.ssn;
     document.getElementById('member-phone').value = member.phone;
     document.getElementById('member-join-date').value = member.joinDate;
@@ -516,6 +519,7 @@ function exportMembersToExcel() {
     const excelData = members.map((member, index) => ({
         '번호': index + 1,
         '성명': member.name,
+        '닉네임': member.nickname || '-',
         '주민번호': member.ssn,
         '핸드폰번호': member.phone,
         '가입일': member.joinDate
@@ -528,6 +532,7 @@ function exportMembersToExcel() {
     worksheet['!cols'] = [
         { wch: 8 },  // 번호
         { wch: 15 }, // 성명
+        { wch: 15 }, // 닉네임
         { wch: 18 }, // 주민번호
         { wch: 18 }, // 핸드폰번호
         { wch: 15 }  // 가입일
