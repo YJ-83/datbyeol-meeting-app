@@ -171,6 +171,7 @@ function initializeModals() {
     const memberModal = document.getElementById('member-modal');
     const dueModal = document.getElementById('due-modal');
     const meetingModal = document.getElementById('meeting-modal');
+    const bulkDueModal = document.getElementById('bulk-due-modal');
 
     // 모달 닫기 버튼
     document.querySelectorAll('.close').forEach(closeBtn => {
@@ -178,6 +179,7 @@ function initializeModals() {
             memberModal.classList.remove('active');
             dueModal.classList.remove('active');
             meetingModal.classList.remove('active');
+            bulkDueModal.classList.remove('active');
             resetForms();
         });
     });
@@ -194,6 +196,10 @@ function initializeModals() {
         }
         if (e.target === meetingModal) {
             meetingModal.classList.remove('active');
+            resetForms();
+        }
+        if (e.target === bulkDueModal) {
+            bulkDueModal.classList.remove('active');
             resetForms();
         }
     });
@@ -241,6 +247,16 @@ function initializeEventListeners() {
         document.getElementById('due-modal').classList.add('active');
     });
 
+    // 개별 입력 버튼
+    document.getElementById('bulk-add-due-btn').addEventListener('click', () => {
+        if (!currentMeetingId) {
+            alert('먼저 모임을 선택하거나 새로 만들어주세요.');
+            return;
+        }
+        renderBulkMembersForm();
+        document.getElementById('bulk-due-modal').classList.add('active');
+    });
+
     // 모임 폼 제출
     document.getElementById('meeting-form').addEventListener('submit', handleMeetingSubmit);
 
@@ -249,6 +265,9 @@ function initializeEventListeners() {
 
     // 회비 폼 제출
     document.getElementById('due-form').addEventListener('submit', handleDueSubmit);
+
+    // 개별 입력 폼 제출
+    document.getElementById('bulk-due-form').addEventListener('submit', handleBulkDueSubmit);
 
     // 주민번호 자동 하이픈
     document.getElementById('member-ssn').addEventListener('input', formatSSN);
@@ -277,6 +296,8 @@ function setDefaultDate() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('member-join-date').value = today;
     document.getElementById('due-date').value = today;
+    const bulkDueDate = document.getElementById('bulk-due-date');
+    if (bulkDueDate) bulkDueDate.value = today;
 }
 
 // 주민번호 포맷 (000000-0000000)
@@ -483,7 +504,7 @@ function renderDues() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${index + 1}</td>
-            <td>${due.memberName}</td>
+            <td>${due.memberNickname || due.memberName}</td>
             <td>${due.date}</td>
             <td>${formatCurrency(due.amount)}</td>
             <td>${due.method}</td>
@@ -505,15 +526,16 @@ function formatCurrency(amount) {
     return parseInt(amount).toLocaleString('ko-KR') + '원';
 }
 
-// 회원 선택 드롭다운 업데이트
+// 회원 선택 드롭다운 업데이트 (닉네임으로 표시)
 function updateMemberSelect() {
     const select = document.getElementById('due-member');
     select.innerHTML = '<option value="">선택하세요</option>';
 
     members.forEach(member => {
         const option = document.createElement('option');
-        option.value = member.name;
-        option.textContent = member.name;
+        const displayName = member.nickname || member.name || '이름없음';
+        option.value = displayName;
+        option.textContent = displayName;
         select.appendChild(option);
     });
 }
@@ -528,7 +550,8 @@ function handleDueSubmit(e) {
     }
 
     const dueData = {
-        memberName: document.getElementById('due-member').value,
+        memberNickname: document.getElementById('due-member').value,
+        memberName: document.getElementById('due-member').value, // 호환성 유지
         date: document.getElementById('due-date').value,
         amount: document.getElementById('due-amount').value,
         method: document.getElementById('due-method').value,
@@ -748,4 +771,98 @@ function importData(e) {
         }
     };
     reader.readAsText(file);
+}
+
+// 개별 입력 폼 렌더링
+function renderBulkMembersForm() {
+    const container = document.getElementById('bulk-members-container');
+    container.innerHTML = '';
+
+    members.forEach((member, index) => {
+        const displayName = member.nickname || member.name || '이름없음';
+        const memberDiv = document.createElement('div');
+        memberDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #eee;';
+
+        memberDiv.innerHTML = `
+            <input type="checkbox" class="bulk-member-check" data-index="${index}" style="width: 18px; height: 18px;">
+            <span style="flex: 1; font-weight: 500;">${displayName}</span>
+            <input type="number" class="bulk-member-amount" data-index="${index}"
+                   min="0" step="1000" placeholder="금액"
+                   style="width: 120px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+            <input type="text" class="bulk-member-note" data-index="${index}"
+                   placeholder="비고 (선택)"
+                   style="width: 150px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+        `;
+
+        container.appendChild(memberDiv);
+    });
+}
+
+// 개별 입력 제출 처리
+function handleBulkDueSubmit(e) {
+    e.preventDefault();
+
+    if (!currentMeetingId) {
+        alert('모임을 먼저 선택해주세요.');
+        return;
+    }
+
+    const date = document.getElementById('bulk-due-date').value;
+    const method = document.getElementById('bulk-due-method').value;
+
+    const checkboxes = document.querySelectorAll('.bulk-member-check:checked');
+
+    if (checkboxes.length === 0) {
+        alert('최소 1명 이상의 회원을 선택해주세요.');
+        return;
+    }
+
+    const meeting = meetings.find(m => m.id === currentMeetingId);
+    if (!meeting) return;
+
+    if (!meeting.dues) {
+        meeting.dues = [];
+    }
+
+    let addedCount = 0;
+
+    checkboxes.forEach(checkbox => {
+        const index = parseInt(checkbox.dataset.index);
+        const member = members[index];
+        const amountInput = document.querySelector(`.bulk-member-amount[data-index="${index}"]`);
+        const noteInput = document.querySelector(`.bulk-member-note[data-index="${index}"]`);
+
+        const amount = amountInput.value;
+
+        if (!amount || parseInt(amount) <= 0) {
+            return; // 금액이 없으면 건너뛰기
+        }
+
+        const displayName = member.nickname || member.name || '이름없음';
+
+        const dueData = {
+            memberNickname: displayName,
+            memberName: displayName,
+            date: date,
+            amount: amount,
+            method: method,
+            note: noteInput.value || ''
+        };
+
+        meeting.dues.push(dueData);
+        addedCount++;
+    });
+
+    if (addedCount === 0) {
+        alert('금액이 입력된 회원이 없습니다.');
+        return;
+    }
+
+    saveData();
+    renderDues();
+    updateStats();
+    document.getElementById('bulk-due-modal').classList.remove('active');
+    document.getElementById('bulk-due-form').reset();
+
+    alert(`${addedCount}명의 회비가 등록되었습니다.`);
 }

@@ -64,6 +64,7 @@
                 <div class="button-group">
                     <button id="add-meeting-btn" class="btn btn-success">+ 새 모임 만들기</button>
                     <button id="add-due-btn" class="btn btn-primary">+ 회비 추가</button>
+                    <button id="bulk-add-due-btn" class="btn btn-secondary">📋 개별 입력</button>
                 </div>
             </div>
 
@@ -232,6 +233,40 @@
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">저장</button>
+                    <button type="button" class="btn btn-secondary close">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 개별 입력 모달 -->
+    <div id="bulk-due-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>개별 입력 (여러 회원 한 번에 등록)</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="bulk-due-form">
+                <div class="form-group">
+                    <label for="bulk-due-date">납부일 *</label>
+                    <input type="date" id="bulk-due-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="bulk-due-method">납부방법</label>
+                    <select id="bulk-due-method">
+                        <option value="현금">현금</option>
+                        <option value="계좌이체">계좌이체</option>
+                        <option value="카드">카드</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+
+                <div id="bulk-members-container" style="margin-top: 20px; max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 15px;">
+                    <!-- 동적으로 생성 -->
+                </div>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">전체 저장</button>
                     <button type="button" class="btn btn-secondary close">취소</button>
                 </div>
             </form>
