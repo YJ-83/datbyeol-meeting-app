@@ -549,9 +549,19 @@ function handleDueSubmit(e) {
         return;
     }
 
+    // 직접 입력 또는 드롭다운 선택 중 우선순위 처리
+    const manualInput = document.getElementById('due-member-manual').value.trim();
+    const dropdownValue = document.getElementById('due-member').value;
+    const memberNickname = manualInput || dropdownValue;
+
+    if (!memberNickname) {
+        alert('닉네임을 선택하거나 직접 입력해주세요.');
+        return;
+    }
+
     const dueData = {
-        memberNickname: document.getElementById('due-member').value,
-        memberName: document.getElementById('due-member').value, // 호환성 유지
+        memberNickname: memberNickname,
+        memberName: memberNickname, // 호환성 유지
         date: document.getElementById('due-date').value,
         amount: document.getElementById('due-amount').value,
         method: document.getElementById('due-method').value,
@@ -592,7 +602,10 @@ function editDue(index) {
 
     document.getElementById('due-modal-title').textContent = '회비 수정';
     updateMemberSelect();
-    document.getElementById('due-member').value = due.memberName;
+
+    const nickname = due.memberNickname || due.memberName;
+    document.getElementById('due-member').value = nickname;
+    document.getElementById('due-member-manual').value = ''; // 수정 시 드롭다운 우선 사용
     document.getElementById('due-date').value = due.date;
     document.getElementById('due-amount').value = due.amount;
     document.getElementById('due-method').value = due.method;

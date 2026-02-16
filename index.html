@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>닻별 모임 관리 시스템</title>
-    <link rel="stylesheet" href="style.css?v=2.1">
+    <link rel="stylesheet" href="style.css?v=2.2">
     <!-- SheetJS 라이브러리 (엑셀 내보내기용) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -85,7 +85,7 @@
                     <thead>
                         <tr>
                             <th>번호</th>
-                            <th>회원명</th>
+                            <th>닉네임</th>
                             <th>납부일</th>
                             <th>납부액</th>
                             <th>납부방법</th>
@@ -208,10 +208,14 @@
             </div>
             <form id="due-form">
                 <div class="form-group">
-                    <label for="due-member">회원명 *</label>
-                    <select id="due-member" required>
+                    <label for="due-member">닉네임 선택 *</label>
+                    <select id="due-member">
                         <option value="">선택하세요</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="due-member-manual">또는 직접 입력</label>
+                    <input type="text" id="due-member-manual" placeholder="닉네임을 직접 입력하세요">
                 </div>
                 <div class="form-group">
                     <label for="due-date">납부일 *</label>
@@ -276,6 +280,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=2.1"></script>
+    <script src="app.js?v=2.2"></script>
 </body>
 </html>
