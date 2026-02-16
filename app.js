@@ -282,13 +282,24 @@ function initializeEventListeners() {
     });
     document.getElementById('import-file').addEventListener('change', importData);
 
-    // 전체 선택 체크박스
+    // 전체 선택 체크박스 (회원)
     document.getElementById('select-all-members').addEventListener('change', function() {
         const checkboxes = document.querySelectorAll('.member-checkbox');
         checkboxes.forEach(checkbox => {
             checkbox.checked = this.checked;
         });
     });
+
+    // 전체 선택 체크박스 (회비)
+    document.getElementById('select-all-dues').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.due-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+
+    // 회비 엑셀 내보내기 버튼
+    document.getElementById('export-dues-excel-btn').addEventListener('click', exportDuesToExcel);
 }
 
 // 기본 날짜 설정 (오늘)
@@ -499,7 +510,7 @@ function renderDues() {
     tbody.innerHTML = '';
 
     if (!currentMeetingId) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#999;">모임을 선택하거나 새로 만들어주세요.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px; color:#999;">모임을 선택하거나 새로 만들어주세요.</td></tr>';
         document.getElementById('total-dues').textContent = '0';
         document.getElementById('total-amount').textContent = '0';
         return;
@@ -507,7 +518,7 @@ function renderDues() {
 
     const currentMeeting = meetings.find(m => m.id === currentMeetingId);
     if (!currentMeeting || !currentMeeting.dues || currentMeeting.dues.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#999;">등록된 회비 내역이 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px; color:#999;">등록된 회비 내역이 없습니다.</td></tr>';
         document.getElementById('total-dues').textContent = '0';
         document.getElementById('total-amount').textContent = '0';
         return;
@@ -531,6 +542,7 @@ function renderDues() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
+            <td><input type="checkbox" class="due-checkbox" data-index="${index}"></td>
             <td>${index + 1}</td>
             <td><span style="color: ${typeColor}; font-weight: 600;">${typeLabel}</span></td>
             <td>${due.memberNickname || due.memberName}</td>
@@ -745,6 +757,108 @@ function resetForms() {
 function saveData() {
     localStorage.setItem('datbyeol_members', JSON.stringify(members));
     localStorage.setItem('datbyeol_meetings', JSON.stringify(meetings));
+}
+
+// 회비 내역 엑셀 내보내기
+function exportDuesToExcel() {
+    if (!currentMeetingId) {
+        alert('먼저 모임을 선택해주세요.');
+        return;
+    }
+
+    const currentMeeting = meetings.find(m => m.id === currentMeetingId);
+    if (!currentMeeting || !currentMeeting.dues || currentMeeting.dues.length === 0) {
+        alert('내보낼 회비 내역이 없습니다.');
+        return;
+    }
+
+    // 선택된 회비 확인
+    const selectedCheckboxes = document.querySelectorAll('.due-checkbox:checked');
+    let duesToExport = [];
+
+    if (selectedCheckboxes.length > 0) {
+        // 선택된 회비만 내보내기
+        selectedCheckboxes.forEach(checkbox => {
+            const index = parseInt(checkbox.dataset.index);
+            duesToExport.push(currentMeeting.dues[index]);
+        });
+    } else {
+        // 선택된 회비가 없으면 전체 내보내기
+        if (confirm('선택된 회비가 없습니다.\n전체 회비 내역을 내보내시겠습니까?')) {
+            duesToExport = currentMeeting.dues;
+        } else {
+            return;
+        }
+    }
+
+    // 엑셀용 데이터 준비
+    const excelData = duesToExport.map((due, index) => {
+        const amount = parseInt(due.amount);
+        const dueType = due.type || 'income';
+        const typeLabel = dueType === 'income' ? '수입' : '지출';
+        const amountStr = dueType === 'expense' ? `-${amount}` : amount;
+
+        return {
+            '번호': index + 1,
+            '구분': typeLabel,
+            '닉네임': due.memberNickname || due.memberName,
+            '날짜': due.date,
+            '금액': amountStr,
+            '납부방법': due.method,
+            '비고': due.note || '-'
+        };
+    });
+
+    // 수입/지출 합계 계산
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    duesToExport.forEach(due => {
+        const amount = parseInt(due.amount);
+        const dueType = due.type || 'income';
+
+        if (dueType === 'income') {
+            totalIncome += amount;
+        } else {
+            totalExpense += amount;
+        }
+    });
+
+    const balance = totalIncome - totalExpense;
+
+    // 합계 행 추가
+    excelData.push({
+        '번호': '',
+        '구분': '합계',
+        '닉네임': '',
+        '날짜': '',
+        '금액': `수입: ${totalIncome} / 지출: ${totalExpense} / 잔액: ${balance}`,
+        '납부방법': '',
+        '비고': ''
+    });
+
+    // 워크시트 생성
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // 열 너비 설정
+    worksheet['!cols'] = [
+        { wch: 8 },  // 번호
+        { wch: 10 }, // 구분
+        { wch: 15 }, // 닉네임
+        { wch: 12 }, // 날짜
+        { wch: 15 }, // 금액
+        { wch: 12 }, // 납부방법
+        { wch: 20 }  // 비고
+    ];
+
+    // 워크북 생성
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '회비내역');
+
+    // 파일 다운로드
+    const count = duesToExport.length === currentMeeting.dues.length ? '전체' : `선택${duesToExport.length}건`;
+    const fileName = `닻별_${currentMeeting.name}_회비내역_${count}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
 }
 
 // 회원명부 엑셀 내보내기

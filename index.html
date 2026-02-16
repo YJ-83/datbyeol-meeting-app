@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>닻별 모임 관리 시스템</title>
-    <link rel="stylesheet" href="style.css?v=2.3">
+    <link rel="stylesheet" href="style.css?v=2.4">
     <!-- SheetJS 라이브러리 (엑셀 내보내기용) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -65,6 +65,7 @@
             <div class="section-header">
                 <h2>회비 납부 내역</h2>
                 <div class="button-group">
+                    <button id="export-dues-excel-btn" class="btn btn-success">📊 엑셀 내보내기</button>
                     <button id="add-meeting-btn" class="btn btn-success">+ 새 모임 만들기</button>
                     <button id="add-due-btn" class="btn btn-primary">+ 회비 추가</button>
                     <button id="bulk-add-due-btn" class="btn btn-secondary">📋 개별 입력</button>
@@ -84,6 +85,7 @@
                 <table id="dues-table">
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="select-all-dues" title="전체 선택/해제"></th>
                             <th>번호</th>
                             <th>구분</th>
                             <th>닉네임</th>
@@ -288,6 +290,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=2.3"></script>
+    <script src="app.js?v=2.4"></script>
 </body>
 </html>
