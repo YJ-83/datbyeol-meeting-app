@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>닻별 모임 관리 시스템</title>
-    <link rel="stylesheet" href="style.css?v=2.2">
+    <link rel="stylesheet" href="style.css?v=2.3">
     <!-- SheetJS 라이브러리 (엑셀 내보내기용) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -85,9 +85,10 @@
                     <thead>
                         <tr>
                             <th>번호</th>
+                            <th>구분</th>
                             <th>닉네임</th>
-                            <th>납부일</th>
-                            <th>납부액</th>
+                            <th>날짜</th>
+                            <th>금액</th>
                             <th>납부방법</th>
                             <th>비고</th>
                             <th>관리</th>
@@ -208,6 +209,13 @@
             </div>
             <form id="due-form">
                 <div class="form-group">
+                    <label for="due-type">구분 *</label>
+                    <select id="due-type" required>
+                        <option value="income">수입 (회비)</option>
+                        <option value="expense">지출</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="due-member">닉네임 선택 *</label>
                     <select id="due-member">
                         <option value="">선택하세요</option>
@@ -218,11 +226,11 @@
                     <input type="text" id="due-member-manual" placeholder="닉네임을 직접 입력하세요">
                 </div>
                 <div class="form-group">
-                    <label for="due-date">납부일 *</label>
+                    <label for="due-date">날짜 *</label>
                     <input type="date" id="due-date" required>
                 </div>
                 <div class="form-group">
-                    <label for="due-amount">납부액 *</label>
+                    <label for="due-amount">금액 *</label>
                     <input type="number" id="due-amount" min="0" step="1000" placeholder="10000" required>
                 </div>
                 <div class="form-group">
@@ -280,6 +288,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=2.2"></script>
+    <script src="app.js?v=2.3"></script>
 </body>
 </html>

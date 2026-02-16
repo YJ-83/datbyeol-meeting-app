@@ -499,7 +499,7 @@ function renderDues() {
     tbody.innerHTML = '';
 
     if (!currentMeetingId) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#999;">모임을 선택하거나 새로 만들어주세요.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#999;">모임을 선택하거나 새로 만들어주세요.</td></tr>';
         document.getElementById('total-dues').textContent = '0';
         document.getElementById('total-amount').textContent = '0';
         return;
@@ -507,22 +507,35 @@ function renderDues() {
 
     const currentMeeting = meetings.find(m => m.id === currentMeetingId);
     if (!currentMeeting || !currentMeeting.dues || currentMeeting.dues.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#999;">등록된 회비 내역이 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#999;">등록된 회비 내역이 없습니다.</td></tr>';
         document.getElementById('total-dues').textContent = '0';
         document.getElementById('total-amount').textContent = '0';
         return;
     }
 
-    let totalAmount = 0;
+    let totalIncome = 0;
+    let totalExpense = 0;
 
     currentMeeting.dues.forEach((due, index) => {
-        totalAmount += parseInt(due.amount);
+        const amount = parseInt(due.amount);
+        const dueType = due.type || 'income'; // 기존 데이터 호환성
+
+        if (dueType === 'income') {
+            totalIncome += amount;
+        } else {
+            totalExpense += amount;
+        }
+
+        const typeLabel = dueType === 'income' ? '수입' : '지출';
+        const typeColor = dueType === 'income' ? '#22c55e' : '#ef4444';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${index + 1}</td>
+            <td><span style="color: ${typeColor}; font-weight: 600;">${typeLabel}</span></td>
             <td>${due.memberNickname || due.memberName}</td>
             <td>${due.date}</td>
-            <td>${formatCurrency(due.amount)}</td>
+            <td style="color: ${typeColor};">${dueType === 'expense' ? '-' : ''}${formatCurrency(amount)}</td>
             <td>${due.method}</td>
             <td>${due.note || '-'}</td>
             <td>
@@ -533,8 +546,13 @@ function renderDues() {
         tbody.appendChild(tr);
     });
 
+    const balance = totalIncome - totalExpense;
     document.getElementById('total-dues').textContent = currentMeeting.dues.length;
-    document.getElementById('total-amount').textContent = formatCurrency(totalAmount);
+    document.getElementById('total-amount').innerHTML = `
+        수입: <span style="color: #22c55e;">${formatCurrency(totalIncome)}</span> /
+        지출: <span style="color: #ef4444;">${formatCurrency(totalExpense)}</span> /
+        잔액: <span style="color: ${balance >= 0 ? '#22c55e' : '#ef4444'}; font-weight: 700;">${formatCurrency(balance)}</span>
+    `;
 }
 
 // 금액 포맷 (천 단위 콤마)
@@ -589,6 +607,7 @@ function handleDueSubmit(e) {
     }
 
     const dueData = {
+        type: document.getElementById('due-type').value, // 수입/지출 구분
         memberNickname: memberNickname,
         memberName: memberNickname, // 호환성 유지
         date: document.getElementById('due-date').value,
@@ -632,6 +651,7 @@ function editDue(index) {
     document.getElementById('due-modal-title').textContent = '회비 수정';
     updateMemberSelect();
 
+    document.getElementById('due-type').value = due.type || 'income'; // 기존 데이터 호환성
     const nickname = due.memberNickname || due.memberName;
     document.getElementById('due-member').value = nickname;
     document.getElementById('due-member-manual').value = ''; // 수정 시 드롭다운 우선 사용
@@ -671,12 +691,32 @@ function updateStats() {
         }
     });
 
-    // 총 회비 납부액
-    const totalAmount = allDues.reduce((sum, due) => sum + parseInt(due.amount), 0);
-    document.getElementById('stat-total-amount').textContent = formatCurrency(totalAmount);
+    // 수입/지출 합계
+    let totalIncome = 0;
+    let totalExpense = 0;
 
-    // 평균 회비
-    const avgAmount = allDues.length > 0 ? Math.round(totalAmount / allDues.length) : 0;
+    allDues.forEach(due => {
+        const amount = parseInt(due.amount);
+        const dueType = due.type || 'income'; // 기존 데이터 호환성
+
+        if (dueType === 'income') {
+            totalIncome += amount;
+        } else {
+            totalExpense += amount;
+        }
+    });
+
+    const balance = totalIncome - totalExpense;
+
+    // 총 회비 납부액 (잔액 표시)
+    document.getElementById('stat-total-amount').innerHTML =
+        `수입: ${formatCurrency(totalIncome)}<br>` +
+        `지출: ${formatCurrency(totalExpense)}<br>` +
+        `<span style="color: ${balance >= 0 ? '#22c55e' : '#ef4444'}; font-weight: 700;">잔액: ${formatCurrency(balance)}</span>`;
+
+    // 평균 회비 (수입만 계산)
+    const incomeCount = allDues.filter(d => (d.type || 'income') === 'income').length;
+    const avgAmount = incomeCount > 0 ? Math.round(totalIncome / incomeCount) : 0;
     document.getElementById('stat-avg-amount').textContent = formatCurrency(avgAmount);
 
     // 최근 납부일
