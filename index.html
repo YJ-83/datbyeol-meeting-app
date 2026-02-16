@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>닻별 모임 관리 시스템</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- SheetJS 라이브러리 (엑셀 내보내기용) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚓ 닻별 모임 관리 시스템</h1>
+            <p class="subtitle">회원 및 회비를 체계적으로 관리하세요</p>
+        </header>
+
+        <!-- 탭 네비게이션 -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="members">회원 관리</button>
+            <button class="tab-button" data-tab="dues">회비 관리</button>
+            <button class="tab-button" data-tab="stats">통계</button>
+        </div>
+
+        <!-- 회원 관리 탭 -->
+        <div id="members-tab" class="tab-content active">
+            <div class="section-header">
+                <h2>회원 명부</h2>
+                <div class="button-group">
+                    <button id="export-excel-btn" class="btn btn-success">📊 엑셀 내보내기</button>
+                    <button id="add-member-btn" class="btn btn-primary">+ 회원 추가</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="members-table">
+                    <thead>
+                        <tr>
+                            <th>번호</th>
+                            <th>성명</th>
+                            <th>주민번호</th>
+                            <th>핸드폰번호</th>
+                            <th>가입일</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="members-tbody">
+                        <!-- 동적으로 생성 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="summary">
+                총 회원 수: <span id="total-members">0</span>명
+            </div>
+        </div>
+
+        <!-- 회비 관리 탭 -->
+        <div id="dues-tab" class="tab-content">
+            <div class="section-header">
+                <h2>회비 납부 내역</h2>
+                <div class="button-group">
+                    <button id="add-meeting-btn" class="btn btn-success">+ 새 모임 만들기</button>
+                    <button id="add-due-btn" class="btn btn-primary">+ 회비 추가</button>
+                </div>
+            </div>
+
+            <!-- 모임 선택 -->
+            <div class="meeting-selector">
+                <label for="meeting-select">모임 선택:</label>
+                <select id="meeting-select">
+                    <option value="">모임을 선택하세요</option>
+                </select>
+                <button id="delete-meeting-btn" class="btn btn-danger" style="display:none;">모임 삭제</button>
+            </div>
+
+            <div class="table-container">
+                <table id="dues-table">
+                    <thead>
+                        <tr>
+                            <th>번호</th>
+                            <th>회원명</th>
+                            <th>납부일</th>
+                            <th>납부액</th>
+                            <th>납부방법</th>
+                            <th>비고</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dues-tbody">
+                        <!-- 동적으로 생성 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="summary">
+                <div>총 납부 건수: <span id="total-dues">0</span>건</div>
+                <div>총 납부액: <span id="total-amount">0</span>원</div>
+            </div>
+        </div>
+
+        <!-- 통계 탭 -->
+        <div id="stats-tab" class="tab-content">
+            <div class="section-header">
+                <h2>모임 통계</h2>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>총 회원 수</h3>
+                    <p class="stat-value" id="stat-members">0명</p>
+                </div>
+                <div class="stat-card">
+                    <h3>총 회비 납부액</h3>
+                    <p class="stat-value" id="stat-total-amount">0원</p>
+                </div>
+                <div class="stat-card">
+                    <h3>평균 회비</h3>
+                    <p class="stat-value" id="stat-avg-amount">0원</p>
+                </div>
+                <div class="stat-card">
+                    <h3>최근 납부일</h3>
+                    <p class="stat-value" id="stat-recent-date">-</p>
+                </div>
+            </div>
+
+            <div class="data-management">
+                <h3>데이터 관리</h3>
+                <button id="export-btn" class="btn btn-secondary">JSON 내보내기</button>
+                <button id="import-btn" class="btn btn-secondary">JSON 가져오기</button>
+                <input type="file" id="import-file" accept=".json" style="display:none">
+            </div>
+        </div>
+    </div>
+
+    <!-- 회원 추가/수정 모달 -->
+    <div id="member-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="member-modal-title">회원 추가</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="member-form">
+                <div class="form-group">
+                    <label for="member-name">성명 *</label>
+                    <input type="text" id="member-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="member-ssn">주민번호 *</label>
+                    <input type="text" id="member-ssn" placeholder="000000-0000000" maxlength="14" required>
+                </div>
+                <div class="form-group">
+                    <label for="member-phone">핸드폰번호 *</label>
+                    <input type="tel" id="member-phone" placeholder="010-0000-0000" required>
+                </div>
+                <div class="form-group">
+                    <label for="member-join-date">가입일</label>
+                    <input type="date" id="member-join-date">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">저장</button>
+                    <button type="button" class="btn btn-secondary close">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 모임 추가 모달 -->
+    <div id="meeting-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>새 모임 만들기</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="meeting-form">
+                <div class="form-group">
+                    <label for="meeting-name">모임 이름 *</label>
+                    <input type="text" id="meeting-name" placeholder="예: 2026년 2월 정기모임" required>
+                </div>
+                <div class="form-group">
+                    <label for="meeting-date">모임 날짜</label>
+                    <input type="date" id="meeting-date">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">생성</button>
+                    <button type="button" class="btn btn-secondary close">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 회비 추가/수정 모달 -->
+    <div id="due-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="due-modal-title">회비 추가</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="due-form">
+                <div class="form-group">
+                    <label for="due-member">회원명 *</label>
+                    <select id="due-member" required>
+                        <option value="">선택하세요</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="due-date">납부일 *</label>
+                    <input type="date" id="due-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="due-amount">납부액 *</label>
+                    <input type="number" id="due-amount" min="0" step="1000" placeholder="10000" required>
+                </div>
+                <div class="form-group">
+                    <label for="due-method">납부방법</label>
+                    <select id="due-method">
+                        <option value="현금">현금</option>
+                        <option value="계좌이체">계좌이체</option>
+                        <option value="카드">카드</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="due-note">비고</label>
+                    <textarea id="due-note" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">저장</button>
+                    <button type="button" class="btn btn-secondary close">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
