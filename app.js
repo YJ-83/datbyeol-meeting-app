@@ -262,6 +262,14 @@ function initializeEventListeners() {
         document.getElementById('import-file').click();
     });
     document.getElementById('import-file').addEventListener('change', importData);
+
+    // 전체 선택 체크박스
+    document.getElementById('select-all-members').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.member-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
 }
 
 // 기본 날짜 설정 (오늘)
@@ -297,7 +305,7 @@ function renderMembers() {
     tbody.innerHTML = '';
 
     if (members.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#999;">등록된 회원이 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#999;">등록된 회원이 없습니다.</td></tr>';
         document.getElementById('total-members').textContent = '0';
         return;
     }
@@ -305,6 +313,7 @@ function renderMembers() {
     members.forEach((member, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
+            <td><input type="checkbox" class="member-checkbox" data-index="${index}"></td>
             <td>${index + 1}</td>
             <td>${member.name}</td>
             <td>${member.nickname || '-'}</td>
@@ -640,8 +649,27 @@ function exportMembersToExcel() {
         return;
     }
 
+    // 선택된 회원 확인
+    const selectedCheckboxes = document.querySelectorAll('.member-checkbox:checked');
+    let membersToExport = [];
+
+    if (selectedCheckboxes.length > 0) {
+        // 선택된 회원만 내보내기
+        selectedCheckboxes.forEach(checkbox => {
+            const index = parseInt(checkbox.dataset.index);
+            membersToExport.push(members[index]);
+        });
+    } else {
+        // 선택된 회원이 없으면 전체 내보내기
+        if (confirm('선택된 회원이 없습니다.\n전체 회원을 내보내시겠습니까?')) {
+            membersToExport = members;
+        } else {
+            return;
+        }
+    }
+
     // 엑셀용 데이터 준비
-    const excelData = members.map((member, index) => ({
+    const excelData = membersToExport.map((member, index) => ({
         '번호': index + 1,
         '성명': member.name,
         '닉네임': member.nickname || '-',
@@ -668,7 +696,8 @@ function exportMembersToExcel() {
     XLSX.utils.book_append_sheet(workbook, worksheet, '회원명부');
 
     // 파일 다운로드
-    const fileName = `닻별_회원명부_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const count = membersToExport.length === members.length ? '전체' : `선택${membersToExport.length}명`;
+    const fileName = `닻별_회원명부_${count}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 }
 

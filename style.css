@@ -209,6 +209,23 @@ tbody tr:last-child td {
     border-bottom: none;
 }
 
+/* 체크박스 스타일 */
+.member-checkbox, #select-all-members {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+th:first-child {
+    text-align: center;
+    width: 40px;
+}
+
+td:first-child {
+    text-align: center;
+}
+
 /* 요약 */
 .summary {
     margin-top: 20px;

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>localStorage 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #f0f0f0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>localStorage 테스트</h1>
+
+    <button onclick="clearStorage()">localStorage 초기화</button>
+    <button onclick="loadData()">데이터 강제 로드</button>
+    <button onclick="checkStorage()">저장소 확인</button>
+
+    <div id="result" class="result"></div>
+
+    <script src="app.js"></script>
+    <script>
+        function clearStorage() {
+            localStorage.clear();
+            document.getElementById('result').innerHTML = '<strong style="color: green;">✓ localStorage가 초기화되었습니다.</strong><br>페이지를 새로고침하세요.';
+        }
+
+        function loadData() {
+            localStorage.clear();
+            members = initialMembersData;
+            localStorage.setItem('datbyeol_members', JSON.stringify(members));
+            document.getElementById('result').innerHTML =
+                '<strong style="color: green;">✓ 데이터가 강제로 로드되었습니다.</strong><br>' +
+                '총 회원 수: ' + members.length + '명<br>' +
+                '<a href="index.html">메인 페이지로 이동</a>';
+        }
+
+        function checkStorage() {
+            const stored = localStorage.getItem('datbyeol_members');
+            const result = document.getElementById('result');
+
+            if (stored) {
+                const data = JSON.parse(stored);
+                result.innerHTML =
+                    '<strong style="color: blue;">현재 저장된 데이터:</strong><br>' +
+                    '회원 수: ' + data.length + '명<br>' +
+                    '첫 번째 회원: ' + (data[0] ? data[0].name + ' (' + data[0].nickname + ')' : '없음');
+            } else {
+                result.innerHTML = '<strong style="color: red;">저장된 데이터가 없습니다.</strong>';
+            }
+        }
+
+        // 페이지 로드 시 자동 확인
+        window.addEventListener('load', checkStorage);
+    </script>
+</body>
+</html>
