@@ -331,19 +331,35 @@ function renderMembers() {
         return;
     }
 
-    members.forEach((member, index) => {
+    // 회원 목록을 닉네임으로 정렬 (누리마루가 먼저 오도록)
+    const sortedMembers = members.map((member, originalIndex) => ({
+        ...member,
+        originalIndex
+    })).sort((a, b) => {
+        const nameA = a.nickname || a.name || '이름없음';
+        const nameB = b.nickname || b.name || '이름없음';
+
+        // "누리마루"를 최우선으로
+        if (nameA === '누리마루') return -1;
+        if (nameB === '누리마루') return 1;
+
+        // 나머지는 가나다순
+        return nameA.localeCompare(nameB, 'ko-KR');
+    });
+
+    sortedMembers.forEach((member, displayIndex) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="checkbox" class="member-checkbox" data-index="${index}"></td>
-            <td>${index + 1}</td>
+            <td><input type="checkbox" class="member-checkbox" data-index="${member.originalIndex}"></td>
+            <td>${displayIndex + 1}</td>
             <td>${member.name}</td>
             <td>${member.nickname || '-'}</td>
             <td>${maskSSN(member.ssn)}</td>
             <td>${member.phone}</td>
             <td>${member.joinDate}</td>
             <td>
-                <button class="btn btn-edit" onclick="editMember(${index})">수정</button>
-                <button class="btn btn-danger" onclick="deleteMember(${index})">삭제</button>
+                <button class="btn btn-edit" onclick="editMember(${member.originalIndex})">수정</button>
+                <button class="btn btn-danger" onclick="deleteMember(${member.originalIndex})">삭제</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -531,7 +547,20 @@ function updateMemberSelect() {
     const select = document.getElementById('due-member');
     select.innerHTML = '<option value="">선택하세요</option>';
 
-    members.forEach(member => {
+    // 회원 목록을 닉네임으로 정렬 (누리마루가 먼저 오도록)
+    const sortedMembers = [...members].sort((a, b) => {
+        const nameA = a.nickname || a.name || '이름없음';
+        const nameB = b.nickname || b.name || '이름없음';
+
+        // "누리마루"를 최우선으로
+        if (nameA === '누리마루') return -1;
+        if (nameB === '누리마루') return 1;
+
+        // 나머지는 가나다순
+        return nameA.localeCompare(nameB, 'ko-KR');
+    });
+
+    sortedMembers.forEach(member => {
         const option = document.createElement('option');
         const displayName = member.nickname || member.name || '이름없음';
         option.value = displayName;
@@ -791,18 +820,34 @@ function renderBulkMembersForm() {
     const container = document.getElementById('bulk-members-container');
     container.innerHTML = '';
 
-    members.forEach((member, index) => {
+    // 회원 목록을 닉네임으로 정렬 (누리마루가 먼저 오도록)
+    const sortedMembers = members.map((member, originalIndex) => ({
+        ...member,
+        originalIndex
+    })).sort((a, b) => {
+        const nameA = a.nickname || a.name || '이름없음';
+        const nameB = b.nickname || b.name || '이름없음';
+
+        // "누리마루"를 최우선으로
+        if (nameA === '누리마루') return -1;
+        if (nameB === '누리마루') return 1;
+
+        // 나머지는 가나다순
+        return nameA.localeCompare(nameB, 'ko-KR');
+    });
+
+    sortedMembers.forEach((member) => {
         const displayName = member.nickname || member.name || '이름없음';
         const memberDiv = document.createElement('div');
         memberDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #eee;';
 
         memberDiv.innerHTML = `
-            <input type="checkbox" class="bulk-member-check" data-index="${index}" style="width: 18px; height: 18px;">
+            <input type="checkbox" class="bulk-member-check" data-index="${member.originalIndex}" style="width: 18px; height: 18px;">
             <span style="flex: 1; font-weight: 500;">${displayName}</span>
-            <input type="number" class="bulk-member-amount" data-index="${index}"
+            <input type="number" class="bulk-member-amount" data-index="${member.originalIndex}"
                    min="0" step="1000" placeholder="금액"
                    style="width: 120px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-            <input type="text" class="bulk-member-note" data-index="${index}"
+            <input type="text" class="bulk-member-note" data-index="${member.originalIndex}"
                    placeholder="비고 (선택)"
                    style="width: 150px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
         `;
