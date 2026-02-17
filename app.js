@@ -243,6 +243,13 @@ function initializeEventListeners() {
         currentEditId = null;
         currentEditType = 'add';
         document.getElementById('due-modal-title').textContent = '회비 추가';
+
+        // 폼 초기화
+        document.getElementById('due-form').reset();
+        document.getElementById('due-type').value = 'income';
+        document.getElementById('due-member-manual').value = '';
+        setDefaultDate();
+
         updateMemberSelect();
         document.getElementById('due-modal').classList.add('active');
     });
