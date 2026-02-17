@@ -559,6 +559,23 @@ function renderDues() {
     });
 
     const balance = totalIncome - totalExpense;
+
+    // 전잔고 행 추가 (가장 아래)
+    const balanceRow = document.createElement('tr');
+    balanceRow.style.cssText = 'background-color: #f0f9ff; font-weight: 700; border-top: 2px solid #3b82f6;';
+    balanceRow.innerHTML = `
+        <td></td>
+        <td></td>
+        <td style="text-align: center; color: #1e40af;">전잔고</td>
+        <td colspan="2" style="text-align: right; color: ${balance >= 0 ? '#22c55e' : '#ef4444'}; font-size: 1.1em;">
+            ${formatCurrency(balance)}
+        </td>
+        <td colspan="4" style="font-size: 0.9em; color: #64748b;">
+            수입: ${formatCurrency(totalIncome)} | 지출: ${formatCurrency(totalExpense)}
+        </td>
+    `;
+    tbody.appendChild(balanceRow);
+
     document.getElementById('total-dues').textContent = currentMeeting.dues.length;
     document.getElementById('total-amount').innerHTML = `
         수입: <span style="color: #22c55e;">${formatCurrency(totalIncome)}</span> /
@@ -801,7 +818,7 @@ function exportDuesToExcel() {
         return {
             '번호': index + 1,
             '구분': typeLabel,
-            '닉네임': due.memberNickname || due.memberName,
+            '상세내용': due.memberNickname || due.memberName,
             '날짜': due.date,
             '금액': amountStr,
             '납부방법': due.method,
@@ -844,7 +861,7 @@ function exportDuesToExcel() {
     worksheet['!cols'] = [
         { wch: 8 },  // 번호
         { wch: 10 }, // 구분
-        { wch: 15 }, // 닉네임
+        { wch: 20 }, // 상세내용
         { wch: 12 }, // 날짜
         { wch: 15 }, // 금액
         { wch: 12 }, // 납부방법

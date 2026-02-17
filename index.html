@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>닻별 모임 관리 시스템</title>
-    <link rel="stylesheet" href="style.css?v=2.4">
+    <link rel="stylesheet" href="style.css?v=2.5">
     <!-- SheetJS 라이브러리 (엑셀 내보내기용) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -88,7 +88,7 @@
                             <th><input type="checkbox" id="select-all-dues" title="전체 선택/해제"></th>
                             <th>번호</th>
                             <th>구분</th>
-                            <th>닉네임</th>
+                            <th>상세내용</th>
                             <th>날짜</th>
                             <th>금액</th>
                             <th>납부방법</th>
@@ -218,14 +218,14 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="due-member">닉네임 선택 *</label>
+                    <label for="due-member">상세내용 선택 *</label>
                     <select id="due-member">
                         <option value="">선택하세요</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label for="due-member-manual">또는 직접 입력</label>
-                    <input type="text" id="due-member-manual" placeholder="닉네임을 직접 입력하세요">
+                    <input type="text" id="due-member-manual" placeholder="상세내용을 직접 입력하세요">
                 </div>
                 <div class="form-group">
                     <label for="due-date">날짜 *</label>
@@ -290,6 +290,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=2.4"></script>
+    <script src="app.js?v=2.5"></script>
 </body>
 </html>
