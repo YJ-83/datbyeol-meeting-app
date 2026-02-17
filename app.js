@@ -527,23 +527,36 @@ function renderDues() {
     let totalIncome = 0;
     let totalExpense = 0;
 
+    // 전잔고 항목과 일반 항목 분리 및 정렬
+    const balanceItems = [];
+    const normalItems = [];
+
     currentMeeting.dues.forEach((due, index) => {
-        const amount = parseInt(due.amount);
-        const dueType = due.type || 'income'; // 기존 데이터 호환성
-
-        if (dueType === 'income') {
-            totalIncome += amount;
+        const dueType = due.type || 'income';
+        if (dueType === 'balance') {
+            balanceItems.push({ due, index });
         } else {
-            totalExpense += amount;
+            normalItems.push({ due, index });
+            const amount = parseInt(due.amount);
+            if (dueType === 'income') {
+                totalIncome += amount;
+            } else {
+                totalExpense += amount;
+            }
         }
+    });
 
+    // 일반 항목 먼저 렌더링
+    normalItems.forEach(({ due, index }, displayIndex) => {
+        const amount = parseInt(due.amount);
+        const dueType = due.type || 'income';
         const typeLabel = dueType === 'income' ? '수입' : '지출';
         const typeColor = dueType === 'income' ? '#22c55e' : '#ef4444';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><input type="checkbox" class="due-checkbox" data-index="${index}"></td>
-            <td>${index + 1}</td>
+            <td>${displayIndex + 1}</td>
             <td><span style="color: ${typeColor}; font-weight: 600;">${typeLabel}</span></td>
             <td>${due.memberNickname || due.memberName}</td>
             <td>${due.date}</td>
@@ -558,23 +571,29 @@ function renderDues() {
         tbody.appendChild(tr);
     });
 
-    const balance = totalIncome - totalExpense;
-
-    // 전잔고 행 추가 (가장 아래)
-    const balanceRow = document.createElement('tr');
-    balanceRow.style.cssText = 'background-color: #f0f9ff; font-weight: 700; border-top: 2px solid #3b82f6;';
-    balanceRow.innerHTML = `
-        <td></td>
-        <td></td>
-        <td style="text-align: center; color: #1e40af;">전잔고</td>
-        <td colspan="2" style="text-align: right; color: ${balance >= 0 ? '#22c55e' : '#ef4444'}; font-size: 1.1em;">
-            ${formatCurrency(balance)}
-        </td>
-        <td colspan="4" style="font-size: 0.9em; color: #64748b;">
-            수입: ${formatCurrency(totalIncome)} | 지출: ${formatCurrency(totalExpense)}
-        </td>
-    `;
-    tbody.appendChild(balanceRow);
+    // 전잔고 항목들을 가장 아래에 렌더링
+    balanceItems.forEach(({ due, index }) => {
+        const amount = parseInt(due.amount);
+        const tr = document.createElement('tr');
+        tr.style.cssText = 'background-color: #f0f9ff; font-weight: 700; border-top: 2px solid #3b82f6;';
+        tr.innerHTML = `
+            <td><input type="checkbox" class="due-checkbox" data-index="${index}"></td>
+            <td></td>
+            <td style="text-align: center; color: #1e40af;">전잔고</td>
+            <td>${due.memberNickname || due.memberName || ''}</td>
+            <td>${due.date}</td>
+            <td style="color: ${amount >= 0 ? '#22c55e' : '#ef4444'}; font-size: 1.1em;">
+                ${formatCurrency(amount)}
+            </td>
+            <td>${due.method}</td>
+            <td>${due.note || '-'}</td>
+            <td>
+                <button class="btn btn-edit" onclick="editDue(${index})">수정</button>
+                <button class="btn btn-danger" onclick="deleteDue(${index})">삭제</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 
     document.getElementById('total-dues').textContent = currentMeeting.dues.length;
     document.getElementById('total-amount').innerHTML = `
@@ -720,7 +739,7 @@ function updateStats() {
         }
     });
 
-    // 수입/지출 합계
+    // 수입/지출 합계 (전잔고 제외)
     let totalIncome = 0;
     let totalExpense = 0;
 
@@ -730,7 +749,7 @@ function updateStats() {
 
         if (dueType === 'income') {
             totalIncome += amount;
-        } else {
+        } else if (dueType === 'expense') {
             totalExpense += amount;
         }
     });
@@ -808,14 +827,29 @@ function exportDuesToExcel() {
         }
     }
 
-    // 엑셀용 데이터 준비
-    const excelData = duesToExport.map((due, index) => {
+    // 엑셀용 데이터 준비 (전잔고 항목을 가장 아래로)
+    const normalDues = [];
+    const balanceDues = [];
+
+    duesToExport.forEach((due) => {
+        const dueType = due.type || 'income';
+        if (dueType === 'balance') {
+            balanceDues.push(due);
+        } else {
+            normalDues.push(due);
+        }
+    });
+
+    const excelData = [];
+
+    // 일반 항목 먼저 추가
+    normalDues.forEach((due, index) => {
         const amount = parseInt(due.amount);
         const dueType = due.type || 'income';
         const typeLabel = dueType === 'income' ? '수입' : '지출';
         const amountStr = dueType === 'expense' ? `-${amount}` : amount;
 
-        return {
+        excelData.push({
             '번호': index + 1,
             '구분': typeLabel,
             '상세내용': due.memberNickname || due.memberName,
@@ -823,20 +857,34 @@ function exportDuesToExcel() {
             '금액': amountStr,
             '납부방법': due.method,
             '비고': due.note || '-'
-        };
+        });
     });
 
-    // 수입/지출 합계 계산
+    // 전잔고 항목 추가
+    balanceDues.forEach((due) => {
+        const amount = parseInt(due.amount);
+        excelData.push({
+            '번호': '',
+            '구분': '전잔고',
+            '상세내용': due.memberNickname || due.memberName || '',
+            '날짜': due.date,
+            '금액': amount,
+            '납부방법': due.method,
+            '비고': due.note || '-'
+        });
+    });
+
+    // 수입/지출 합계 계산 (전잔고 제외)
     let totalIncome = 0;
     let totalExpense = 0;
 
-    duesToExport.forEach(due => {
+    normalDues.forEach(due => {
         const amount = parseInt(due.amount);
         const dueType = due.type || 'income';
 
         if (dueType === 'income') {
             totalIncome += amount;
-        } else {
+        } else if (dueType === 'expense') {
             totalExpense += amount;
         }
     });
@@ -847,15 +895,24 @@ function exportDuesToExcel() {
     excelData.push({
         '번호': '',
         '구분': '합계',
-        '닉네임': '',
+        '상세내용': '',
         '날짜': '',
         '금액': `수입: ${totalIncome} / 지출: ${totalExpense} / 잔액: ${balance}`,
         '납부방법': '',
         '비고': ''
     });
 
+    // 모임 정보를 헤더에 추가
+    const headerData = [
+        { '모임': currentMeeting.name, '날짜': currentMeeting.date || '' },
+        {}, // 빈 행
+    ];
+
     // 워크시트 생성
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const worksheet = XLSX.utils.json_to_sheet(headerData, { skipHeader: true });
+
+    // 데이터 추가
+    XLSX.utils.sheet_add_json(worksheet, excelData, { origin: 'A3', skipHeader: false });
 
     // 열 너비 설정
     worksheet['!cols'] = [
