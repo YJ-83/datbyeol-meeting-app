@@ -602,7 +602,14 @@ function renderDues() {
         tbody.appendChild(tr);
     });
 
-    const balance = totalIncome - totalExpense;
+    // 전잔고 합계 계산
+    let previousBalance = 0;
+    balanceItems.forEach(({ due }) => {
+        previousBalance += parseInt(due.amount);
+    });
+
+    // 현재 잔액 = 전잔고 + 수입 - 지출
+    const currentBalance = previousBalance + totalIncome - totalExpense;
 
     // 총 납부 건수는 전잔고 제외
     const totalDuesCount = normalItems.length;
@@ -611,7 +618,7 @@ function renderDues() {
     document.getElementById('total-amount').innerHTML = `
         수입: <span style="color: #22c55e;">${formatCurrency(totalIncome)}</span> /
         지출: <span style="color: #ef4444;">${formatCurrency(totalExpense)}</span> /
-        잔액: <span style="color: ${balance >= 0 ? '#22c55e' : '#ef4444'}; font-weight: 700;">${formatCurrency(balance)}</span>
+        잔액: <span style="color: ${currentBalance >= 0 ? '#22c55e' : '#ef4444'}; font-weight: 700;">${formatCurrency(currentBalance)}</span>
     `;
 }
 
@@ -751,9 +758,10 @@ function updateStats() {
         }
     });
 
-    // 수입/지출 합계 (전잔고 제외)
+    // 수입/지출/전잔고 합계
     let totalIncome = 0;
     let totalExpense = 0;
+    let totalPreviousBalance = 0;
 
     allDues.forEach(due => {
         const amount = parseInt(due.amount);
@@ -763,16 +771,19 @@ function updateStats() {
             totalIncome += amount;
         } else if (dueType === 'expense') {
             totalExpense += amount;
+        } else if (dueType === 'balance') {
+            totalPreviousBalance += amount;
         }
     });
 
-    const balance = totalIncome - totalExpense;
+    // 현재 잔액 = 전잔고 + 수입 - 지출
+    const currentBalance = totalPreviousBalance + totalIncome - totalExpense;
 
     // 총 회비 납부액 (잔액 표시)
     document.getElementById('stat-total-amount').innerHTML =
         `수입: ${formatCurrency(totalIncome)}<br>` +
         `지출: ${formatCurrency(totalExpense)}<br>` +
-        `<span style="color: ${balance >= 0 ? '#22c55e' : '#ef4444'}; font-weight: 700;">잔액: ${formatCurrency(balance)}</span>`;
+        `<span style="color: ${currentBalance >= 0 ? '#22c55e' : '#ef4444'}; font-weight: 700;">잔액: ${formatCurrency(currentBalance)}</span>`;
 
     // 평균 회비 (수입만 계산)
     const incomeCount = allDues.filter(d => (d.type || 'income') === 'income').length;
