@@ -604,7 +604,10 @@ function renderDues() {
 
     const balance = totalIncome - totalExpense;
 
-    document.getElementById('total-dues').textContent = currentMeeting.dues.length;
+    // 총 납부 건수는 전잔고 제외
+    const totalDuesCount = normalItems.length;
+
+    document.getElementById('total-dues').textContent = totalDuesCount;
     document.getElementById('total-amount').innerHTML = `
         수입: <span style="color: #22c55e;">${formatCurrency(totalIncome)}</span> /
         지출: <span style="color: #ef4444;">${formatCurrency(totalExpense)}</span> /
