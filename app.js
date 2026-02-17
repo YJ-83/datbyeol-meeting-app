@@ -602,6 +602,8 @@ function renderDues() {
         tbody.appendChild(tr);
     });
 
+    const balance = totalIncome - totalExpense;
+
     document.getElementById('total-dues').textContent = currentMeeting.dues.length;
     document.getElementById('total-amount').innerHTML = `
         수입: <span style="color: #22c55e;">${formatCurrency(totalIncome)}</span> /
