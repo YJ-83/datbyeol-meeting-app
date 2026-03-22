@@ -312,6 +312,40 @@ td:first-child {
     color: #333;
 }
 
+.backup-banner {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 15px 18px;
+    background: #fff8e6;
+    border: 1px solid #f6c344;
+    border-radius: 10px;
+    color: #7a5b00;
+}
+
+.backup-text {
+    flex: 1;
+    font-weight: 600;
+}
+
+.backup-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.backup-badge {
+    background: #ffe7a3;
+    color: #7a5b00;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95em;
+}
+
 /* 모달 */
 .modal {
     display: none;
@@ -441,5 +475,15 @@ form {
 
     .stats-grid {
         grid-template-columns: 1fr;
+    }
+
+    .backup-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .backup-actions {
+        justify-content: flex-start;
+        width: 100%;
     }
 }
