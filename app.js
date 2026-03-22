@@ -118,10 +118,8 @@ let meetings = JSON.parse(localStorage.getItem('datbyeol_meetings')) || [];
 let currentMeetingId = localStorage.getItem('datbyeol_currentMeeting') || null;
 let currentEditId = null;
 let currentEditType = null;
-const AUTO_BACKUP_INTERVAL_MS = 5 * 60 * 1000; // 5분마다 자동 백업
-const AUTO_BACKUP_THROTTLE_MS = 30 * 1000; // 중복 다운로드 방지
-let lastBackupTimestamp = 0;
-let autoBackupTimer = null;
+const AUTO_SAVE_INTERVAL_MS = 60 * 1000; // 1분마다 자동 저장
+let autoSaveTimer = null;
 
 // 초기 데이터 로드
 function loadInitialData() {
@@ -144,7 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeModals();
     initializeEventListeners();
     setDefaultDate();
-    initializeAutoBackup();
+    initializeAutoSave();
+    saveData(); // 초기 한번 저장 보장
 });
 
 // 탭 초기화
@@ -293,13 +292,6 @@ function initializeEventListeners() {
         document.getElementById('import-file').click();
     });
     document.getElementById('import-file').addEventListener('change', importData);
-    const backupNowBtn = document.getElementById('backup-now-btn');
-    if (backupNowBtn) {
-        backupNowBtn.addEventListener('click', () => {
-            downloadBackup('manual');
-            alert('백업 파일이 다운로드되었습니다.');
-        });
-    }
 
     // 전체 선택 체크박스 (회원)
     document.getElementById('select-all-members').addEventListener('change', function() {
@@ -830,53 +822,13 @@ function saveData() {
     localStorage.setItem('datbyeol_meetings', JSON.stringify(meetings));
 }
 
-// 백업 데이터 생성
-function buildBackupData() {
-    return {
-        members: members,
-        meetings: meetings,
-        exportDate: new Date().toISOString()
-    };
-}
-
-// 백업 파일 다운로드 (manual / auto-interval / auto-exit)
-function downloadBackup(reason = 'manual') {
-    const now = Date.now();
-    if (reason !== 'manual' && now - lastBackupTimestamp < AUTO_BACKUP_THROTTLE_MS) {
-        return; // 자동 백업 중복 방지
+// 자동 저장 초기화 (로컬스토리지에 주기적으로 저장)
+function initializeAutoSave() {
+    if (autoSaveTimer) {
+        clearInterval(autoSaveTimer);
     }
-    lastBackupTimestamp = now;
-
-    // 로컬 스토리지에 최신 데이터 반영
-    saveData();
-
-    const dataStr = JSON.stringify(buildBackupData(), null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const suffix = reason ? `_${reason}` : '';
-    const fileName = `닻별_모임데이터${suffix}_${timestamp}.json`;
-
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-        URL.revokeObjectURL(link.href);
-        document.body.removeChild(link);
-    }, 0);
-}
-
-// 자동 백업 초기화
-function initializeAutoBackup() {
-    if (autoBackupTimer) {
-        clearInterval(autoBackupTimer);
-    }
-    autoBackupTimer = setInterval(() => downloadBackup('auto-interval'), AUTO_BACKUP_INTERVAL_MS);
-
-    window.addEventListener('beforeunload', () => {
-        downloadBackup('auto-exit');
-    });
+    autoSaveTimer = setInterval(() => saveData(), AUTO_SAVE_INTERVAL_MS);
+    window.addEventListener('beforeunload', saveData);
 }
 
 // 회비 내역 엑셀 내보내기
@@ -1080,7 +1032,19 @@ function exportMembersToExcel() {
 
 // 데이터 내보내기 (JSON)
 function exportData() {
-    downloadBackup('manual');
+    const data = {
+        members: members,
+        meetings: meetings,
+        exportDate: new Date().toISOString()
+    };
+
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `닻별_모임데이터_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
 }
 
 // 데이터 가져오기 (JSON)
