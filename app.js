@@ -1096,7 +1096,7 @@ function renderBulkMembersForm() {
             <input type="checkbox" class="bulk-member-check" data-index="${member.originalIndex}" style="width: 18px; height: 18px;">
             <span style="flex: 1; font-weight: 500;">${displayName}</span>
             <input type="number" class="bulk-member-amount" data-index="${member.originalIndex}"
-                   min="0" step="1000" placeholder="금액"
+                   min="0" step="1" placeholder="금액"
                    style="width: 120px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
             <input type="text" class="bulk-member-note" data-index="${member.originalIndex}"
                    placeholder="비고 (선택)"
