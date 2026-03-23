@@ -118,8 +118,12 @@ let meetings = JSON.parse(localStorage.getItem('datbyeol_meetings')) || [];
 let currentMeetingId = localStorage.getItem('datbyeol_currentMeeting') || null;
 let currentEditId = null;
 let currentEditType = null;
-const AUTO_SAVE_INTERVAL_MS = 60 * 1000; // 1분마다 자동 저장
+const AUTO_SAVE_INTERVAL_MS = 60 * 1000; // 1분마다 로컬 자동 저장
+const CLOUD_SAVE_DEBOUNCE_MS = 3000; // 과도한 쓰기 방지
 let autoSaveTimer = null;
+let cloudSaveTimer = null;
+let firebaseApp = null;
+let db = null;
 
 // 초기 데이터 로드
 function loadInitialData() {
@@ -144,6 +148,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setDefaultDate();
     initializeAutoSave();
     saveData(); // 초기 한번 저장 보장
+    initFirebase().then(() => {
+        loadFromCloud(); // 원격 데이터 동기화 후 다시 렌더링
+    });
 });
 
 // 탭 초기화
@@ -820,6 +827,7 @@ function resetForms() {
 function saveData() {
     localStorage.setItem('datbyeol_members', JSON.stringify(members));
     localStorage.setItem('datbyeol_meetings', JSON.stringify(meetings));
+    scheduleCloudSave();
 }
 
 // 자동 저장 초기화 (로컬스토리지에 주기적으로 저장)
@@ -828,7 +836,76 @@ function initializeAutoSave() {
         clearInterval(autoSaveTimer);
     }
     autoSaveTimer = setInterval(() => saveData(), AUTO_SAVE_INTERVAL_MS);
-    window.addEventListener('beforeunload', saveData);
+    window.addEventListener('beforeunload', () => {
+        saveData();
+        saveToCloud(); // 종료 전 동기화 시도
+    });
+}
+
+// Firebase 초기화
+async function initFirebase() {
+    try {
+        if (firebaseApp) return;
+        const firebaseConfig = {
+            apiKey: "AIzaSyDZckq7sQjLaPsUboBu2pOQh76tsD8Li_U",
+            authDomain: "my-datbyeol.firebaseapp.com",
+            projectId: "my-datbyeol",
+            storageBucket: "my-datbyeol.firebasestorage.app",
+            messagingSenderId: "247266444116",
+            appId: "1:247266444116:web:dd307301009024d6aafec1"
+        };
+        firebaseApp = firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+    } catch (error) {
+        console.error('Firebase 초기화 실패:', error);
+    }
+}
+
+// 클라우드에서 데이터 불러오기
+async function loadFromCloud() {
+    if (!db) return;
+    try {
+        const docRef = db.collection('datbyeol').doc('state');
+        const doc = await docRef.get();
+        if (doc.exists) {
+            const data = doc.data();
+            members = Array.isArray(data.members) ? data.members : members;
+            meetings = Array.isArray(data.meetings) ? data.meetings : meetings;
+            saveData(); // 로컬 캐시 업데이트
+            renderMembers();
+            loadMeetings();
+            renderDues();
+            updateStats();
+        } else {
+            // 원격에 초기 데이터가 없으면 업로드
+            await saveToCloud();
+        }
+    } catch (error) {
+        console.error('클라우드 데이터 로드 실패:', error);
+    }
+}
+
+// 클라우드 저장 (디바운스 적용)
+function scheduleCloudSave() {
+    if (!db) return;
+    if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(() => {
+        saveToCloud();
+    }, CLOUD_SAVE_DEBOUNCE_MS);
+}
+
+async function saveToCloud() {
+    if (!db) return;
+    try {
+        const docRef = db.collection('datbyeol').doc('state');
+        await docRef.set({
+            members,
+            meetings,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    } catch (error) {
+        console.error('클라우드 저장 실패:', error);
+    }
 }
 
 // 회비 내역 엑셀 내보내기
