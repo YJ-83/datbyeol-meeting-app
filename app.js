@@ -294,12 +294,6 @@ function initializeEventListeners() {
     document.getElementById('member-phone').addEventListener('input', formatPhone);
 
     // 데이터 내보내기/가져오기
-    document.getElementById('export-btn').addEventListener('click', exportData);
-    document.getElementById('import-btn').addEventListener('click', () => {
-        document.getElementById('import-file').click();
-    });
-    document.getElementById('import-file').addEventListener('change', importData);
-
     // 전체 선택 체크박스 (회원)
     document.getElementById('select-all-members').addEventListener('change', function() {
         const checkboxes = document.querySelectorAll('.member-checkbox');
@@ -1105,55 +1099,6 @@ function exportMembersToExcel() {
     const count = membersToExport.length === members.length ? '전체' : `선택${membersToExport.length}명`;
     const fileName = `닻별_회원명부_${count}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
-}
-
-// 데이터 내보내기 (JSON)
-function exportData() {
-    const data = {
-        members: members,
-        meetings: meetings,
-        exportDate: new Date().toISOString()
-    };
-
-    const dataStr = JSON.stringify(data, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `닻별_모임데이터_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-}
-
-// 데이터 가져오기 (JSON)
-function importData(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        try {
-            const data = JSON.parse(event.target.result);
-
-            if (confirm('기존 데이터를 덮어쓰시겠습니까? (취소하면 기존 데이터에 추가됩니다)')) {
-                members = data.members || [];
-                meetings = data.meetings || [];
-            } else {
-                members = [...members, ...(data.members || [])];
-                meetings = [...meetings, ...(data.meetings || [])];
-            }
-
-            saveData();
-            renderMembers();
-            loadMeetings();
-            renderDues();
-            updateStats();
-            alert('데이터를 성공적으로 가져왔습니다!');
-        } catch (error) {
-            alert('파일을 읽는 중 오류가 발생했습니다.');
-            console.error(error);
-        }
-    };
-    reader.readAsText(file);
 }
 
 // 개별 입력 폼 렌더링
