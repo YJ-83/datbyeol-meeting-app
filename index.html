@@ -7,15 +7,68 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>닻별 모임 관리 시스템</title>
-    <link rel="stylesheet" href="style.css?v=2.9">
+    <link rel="stylesheet" href="style.css?v=3.0">
     <!-- SheetJS 라이브러리 (엑셀 내보내기용) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div class="container">
+    <!-- 로그인 게이트 (로그인 전엔 이것만 보임) -->
+    <div id="auth-gate" class="auth-gate">
+        <div class="auth-card">
+            <h1>⚓ 닻별 모임</h1>
+            <p class="auth-subtitle">로그인 후 이용해 주세요</p>
+
+            <div id="auth-tabs" class="auth-tabs">
+                <button type="button" class="auth-tab active" data-auth-tab="login">로그인</button>
+                <button type="button" class="auth-tab" data-auth-tab="signup">회원가입</button>
+            </div>
+
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-email">이메일</label>
+                    <input type="email" id="login-email" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">비밀번호</label>
+                    <input type="password" id="login-password" autocomplete="current-password" required>
+                </div>
+                <div id="login-error" class="auth-error"></div>
+                <button type="submit" class="btn btn-primary btn-block">로그인</button>
+                <button type="button" id="reset-password-btn" class="btn btn-link">비밀번호 재설정 메일 보내기</button>
+            </form>
+
+            <form id="signup-form" class="auth-form" style="display:none;">
+                <div class="form-group">
+                    <label for="signup-email">이메일</label>
+                    <input type="email" id="signup-email" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">비밀번호 (6자 이상)</label>
+                    <input type="password" id="signup-password" autocomplete="new-password" minlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password2">비밀번호 확인</label>
+                    <input type="password" id="signup-password2" autocomplete="new-password" minlength="6" required>
+                </div>
+                <div id="signup-error" class="auth-error"></div>
+                <button type="submit" class="btn btn-primary btn-block">회원가입</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-root" class="container" style="display:none;">
         <header>
-            <h1>⚓ 닻별 모임 관리 시스템</h1>
-            <p class="subtitle">회원 및 회비를 체계적으로 관리하세요</p>
+            <div class="header-top">
+                <div>
+                    <h1>⚓ 닻별 모임 관리 시스템</h1>
+                    <p class="subtitle">회원 및 회비를 체계적으로 관리하세요</p>
+                </div>
+                <div class="user-info">
+                    <span id="sync-status" class="sync-status" title="동기화 상태">●</span>
+                    <span id="current-user" class="current-user"></span>
+                    <button id="logout-btn" class="btn btn-secondary btn-sm">로그아웃</button>
+                </div>
+            </div>
         </header>
 
         <!-- 탭 네비게이션 -->
@@ -286,8 +339,9 @@
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-    <script src="app.js?v=3.2"></script>
+    <script src="app.js?v=3.3"></script>
 </body>
 </html>

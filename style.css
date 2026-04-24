@@ -443,3 +443,144 @@ form {
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== 인증 게이트 (로그인 화면) ===== */
+.auth-gate {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    padding: 40px 30px;
+    width: 100%;
+    max-width: 420px;
+}
+
+.auth-card h1 {
+    text-align: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2em;
+    margin-bottom: 8px;
+}
+
+.auth-subtitle {
+    text-align: center;
+    color: #6c757d;
+    margin-bottom: 25px;
+}
+
+.auth-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 500;
+    color: #6c757d;
+    transition: all 0.2s;
+}
+
+.auth-tab.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+}
+
+.auth-form .form-group {
+    margin-bottom: 15px;
+}
+
+.auth-error {
+    color: #ef4444;
+    font-size: 0.9em;
+    min-height: 1.2em;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.btn-block {
+    width: 100%;
+    padding: 12px;
+    font-size: 1em;
+}
+
+.btn-link {
+    background: transparent;
+    border: none;
+    color: #667eea;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 10px;
+    width: 100%;
+    padding: 5px;
+    font-size: 0.9em;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.9em;
+}
+
+/* ===== 헤더 상단 (유저 정보) ===== */
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.header-top > div:first-child {
+    text-align: left;
+    flex: 1;
+    min-width: 200px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    flex-wrap: wrap;
+}
+
+.current-user {
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.sync-status {
+    font-size: 1.2em;
+    transition: color 0.3s;
+}
+
+.sync-status.syncing { color: #fbbf24; }
+.sync-status.synced { color: #22c55e; }
+.sync-status.error { color: #ef4444; }
+.sync-status.offline { color: #9ca3af; }
+
+@media (max-width: 600px) {
+    .header-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .user-info {
+        justify-content: flex-end;
+    }
+}

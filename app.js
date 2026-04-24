@@ -119,11 +119,15 @@ let currentMeetingId = localStorage.getItem('datbyeol_currentMeeting') || null;
 let currentEditId = null;
 let currentEditType = null;
 const AUTO_SAVE_INTERVAL_MS = 60 * 1000; // 1분마다 로컬 자동 저장
-const CLOUD_SAVE_DEBOUNCE_MS = 3000; // 과도한 쓰기 방지
+const CLOUD_SAVE_DEBOUNCE_MS = 1500; // 원격 쓰기 디바운스
 let autoSaveTimer = null;
 let cloudSaveTimer = null;
 let firebaseApp = null;
 let db = null;
+let auth = null;
+let currentUser = null;
+let unsubscribeSnapshot = null;
+let suppressNextSnapshot = false; // 내 변경으로 인한 snapshot 루프 방지
 
 // 초기 데이터 로드
 function loadInitialData() {
@@ -137,6 +141,15 @@ function loadInitialData() {
 
 // 초기화
 document.addEventListener('DOMContentLoaded', () => {
+    initAuthUI();
+    initFirebase();
+});
+
+// 로그인 성공 후 앱 본체 시작
+function startApp() {
+    document.getElementById('auth-gate').style.display = 'none';
+    document.getElementById('app-root').style.display = '';
+
     loadInitialData();
     initializeTabs();
     renderMembers();
@@ -147,11 +160,28 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
     setDefaultDate();
     initializeAutoSave();
-    saveData(); // 초기 한번 저장 보장
-    initFirebase().then(() => {
-        loadFromCloud(); // 원격 데이터 동기화 후 다시 렌더링
-    });
-});
+
+    // 현재 사용자 표시
+    const userEl = document.getElementById('current-user');
+    if (userEl && currentUser) userEl.textContent = currentUser.email;
+
+    // 실시간 리스너 시작 (onSnapshot)
+    subscribeToCloud();
+}
+
+// 로그아웃 시 앱 정리
+function stopApp() {
+    if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+    }
+    if (autoSaveTimer) {
+        clearInterval(autoSaveTimer);
+        autoSaveTimer = null;
+    }
+    document.getElementById('app-root').style.display = 'none';
+    document.getElementById('auth-gate').style.display = '';
+}
 
 // 탭 초기화
 function initializeTabs() {
@@ -312,6 +342,23 @@ function initializeEventListeners() {
 
     // 회비 엑셀 내보내기 버튼
     document.getElementById('export-dues-excel-btn').addEventListener('click', exportDuesToExcel);
+
+    // 로그아웃 버튼
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn && !logoutBtn.__bound) {
+        logoutBtn.__bound = true;
+        logoutBtn.addEventListener('click', async () => {
+            if (!confirm('로그아웃하시겠습니까?')) return;
+            try {
+                // 종료 전 마지막 동기화
+                if (cloudSaveTimer) { clearTimeout(cloudSaveTimer); cloudSaveTimer = null; }
+                await saveToCloud();
+                await auth.signOut();
+            } catch (err) {
+                console.error('로그아웃 실패:', err);
+            }
+        });
+    }
 }
 
 // 기본 날짜 설정 (오늘)
@@ -830,14 +877,20 @@ function initializeAutoSave() {
         clearInterval(autoSaveTimer);
     }
     autoSaveTimer = setInterval(() => saveData(), AUTO_SAVE_INTERVAL_MS);
-    window.addEventListener('beforeunload', () => {
-        saveData();
-        saveToCloud(); // 종료 전 동기화 시도
-    });
+    // beforeunload 리스너는 한 번만 등록
+    if (!window.__datbyeolUnloadBound) {
+        window.__datbyeolUnloadBound = true;
+        window.addEventListener('beforeunload', () => {
+            saveData();
+            // 종료 전 즉시 동기화 시도 (디바운스 건너뛰기)
+            if (cloudSaveTimer) { clearTimeout(cloudSaveTimer); cloudSaveTimer = null; }
+            saveToCloud();
+        });
+    }
 }
 
-// Firebase 초기화
-async function initFirebase() {
+// Firebase 초기화 + Auth 상태 감지
+function initFirebase() {
     try {
         if (firebaseApp) return;
         const firebaseConfig = {
@@ -850,38 +903,168 @@ async function initFirebase() {
         };
         firebaseApp = firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        auth = firebase.auth();
+
+        // 로그인 상태 자동 유지 (브라우저 로컬)
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
+
+        // 로그인 상태 변경 감지
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            if (user) {
+                startApp();
+            } else {
+                stopApp();
+            }
+        });
     } catch (error) {
         console.error('Firebase 초기화 실패:', error);
+        showAuthError('login-error', 'Firebase 초기화에 실패했습니다. 네트워크를 확인해 주세요.');
     }
 }
 
-// 클라우드에서 데이터 불러오기
-async function loadFromCloud() {
+// 인증 UI 초기화 (로그인/회원가입 탭 + 폼 바인딩)
+function initAuthUI() {
+    // 로그인/회원가입 탭 전환
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.authTab;
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('login-form').style.display = target === 'login' ? '' : 'none';
+            document.getElementById('signup-form').style.display = target === 'signup' ? '' : 'none';
+            clearAuthError('login-error');
+            clearAuthError('signup-error');
+        });
+    });
+
+    // 로그인 폼
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAuthError('login-error');
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+            // onAuthStateChanged가 startApp()을 호출
+        } catch (err) {
+            showAuthError('login-error', translateAuthError(err));
+        }
+    });
+
+    // 회원가입 폼
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAuthError('signup-error');
+        const email = document.getElementById('signup-email').value.trim();
+        const password = document.getElementById('signup-password').value;
+        const password2 = document.getElementById('signup-password2').value;
+        if (password !== password2) {
+            showAuthError('signup-error', '비밀번호가 일치하지 않습니다.');
+            return;
+        }
+        try {
+            await auth.createUserWithEmailAndPassword(email, password);
+            // onAuthStateChanged가 startApp()을 호출
+        } catch (err) {
+            showAuthError('signup-error', translateAuthError(err));
+        }
+    });
+
+    // 비밀번호 재설정
+    document.getElementById('reset-password-btn').addEventListener('click', async () => {
+        const email = document.getElementById('login-email').value.trim();
+        if (!email) {
+            showAuthError('login-error', '이메일을 먼저 입력해 주세요.');
+            return;
+        }
+        try {
+            await auth.sendPasswordResetEmail(email);
+            showAuthError('login-error', '재설정 메일을 보냈습니다. 받은편지함을 확인해 주세요.');
+        } catch (err) {
+            showAuthError('login-error', translateAuthError(err));
+        }
+    });
+}
+
+function showAuthError(id, msg) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = msg;
+}
+function clearAuthError(id) { showAuthError(id, ''); }
+
+function translateAuthError(err) {
+    const code = err && err.code ? err.code : '';
+    const map = {
+        'auth/invalid-email': '이메일 형식이 올바르지 않습니다.',
+        'auth/user-not-found': '등록되지 않은 이메일입니다.',
+        'auth/wrong-password': '비밀번호가 일치하지 않습니다.',
+        'auth/invalid-credential': '이메일 또는 비밀번호가 올바르지 않습니다.',
+        'auth/email-already-in-use': '이미 가입된 이메일입니다.',
+        'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
+        'auth/too-many-requests': '잠시 후 다시 시도해 주세요. (시도 횟수 초과)',
+        'auth/network-request-failed': '네트워크 오류입니다. 연결을 확인해 주세요.',
+        'auth/operation-not-allowed': 'Firebase 콘솔에서 이메일/비밀번호 로그인을 먼저 활성화해 주세요.'
+    };
+    return map[code] || (err && err.message) || '오류가 발생했습니다.';
+}
+
+function setSyncStatus(state) {
+    const el = document.getElementById('sync-status');
+    if (!el) return;
+    el.classList.remove('syncing', 'synced', 'error', 'offline');
+    el.classList.add(state);
+    const label = {
+        syncing: '동기화 중...',
+        synced: '동기화 완료',
+        error: '동기화 오류',
+        offline: '오프라인'
+    }[state] || '';
+    el.title = label;
+}
+
+// 실시간 리스너 (onSnapshot) — 다른 사용자의 변경을 즉시 수신
+function subscribeToCloud() {
     if (!db) return;
-    try {
-        const docRef = db.collection('datbyeol').doc('state');
-        const doc = await docRef.get();
+    if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+    setSyncStatus('syncing');
+    const docRef = db.collection('datbyeol').doc('state');
+
+    unsubscribeSnapshot = docRef.onSnapshot(async (doc) => {
+        // 내 쓰기로 유발된 snapshot은 렌더 재호출만 하고 데이터 덮어쓰기 안 함
+        if (suppressNextSnapshot) {
+            suppressNextSnapshot = false;
+            setSyncStatus('synced');
+            return;
+        }
         if (doc.exists) {
             const data = doc.data();
             members = Array.isArray(data.members) ? data.members : members;
             meetings = Array.isArray(data.meetings) ? data.meetings : meetings;
-            saveData(); // 로컬 캐시 업데이트
+            // 로컬 캐시 갱신
+            localStorage.setItem('datbyeol_members', JSON.stringify(members));
+            localStorage.setItem('datbyeol_meetings', JSON.stringify(meetings));
             renderMembers();
             loadMeetings();
             renderDues();
             updateStats();
+            setSyncStatus('synced');
         } else {
-            // 원격에 초기 데이터가 없으면 업로드
+            // 원격에 문서가 없으면 초기 업로드
             await saveToCloud();
+            setSyncStatus('synced');
         }
-    } catch (error) {
-        console.error('클라우드 데이터 로드 실패:', error);
-    }
+    }, (error) => {
+        console.error('실시간 동기화 실패:', error);
+        setSyncStatus('error');
+    });
 }
 
 // 클라우드 저장 (디바운스 적용)
 function scheduleCloudSave() {
-    if (!db) return;
+    if (!db || !currentUser) return;
+    setSyncStatus('syncing');
     if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
     cloudSaveTimer = setTimeout(() => {
         saveToCloud();
@@ -889,16 +1072,21 @@ function scheduleCloudSave() {
 }
 
 async function saveToCloud() {
-    if (!db) return;
+    if (!db || !currentUser) return;
     try {
+        suppressNextSnapshot = true; // 내 쓰기로 인한 snapshot 루프 방지
         const docRef = db.collection('datbyeol').doc('state');
         await docRef.set({
             members,
             meetings,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedBy: currentUser.email || currentUser.uid
         }, { merge: true });
+        setSyncStatus('synced');
     } catch (error) {
         console.error('클라우드 저장 실패:', error);
+        setSyncStatus('error');
+        suppressNextSnapshot = false;
     }
 }
 
