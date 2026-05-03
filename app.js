@@ -393,6 +393,9 @@ function formatPhone(e) {
 // 회원 렌더링
 function renderMembers() {
     const tbody = document.getElementById('members-tbody');
+    // 재렌더 전 체크 상태 보존 (클라우드 동기화로 인한 자동 재렌더 시 체크 유지)
+    const _prevChecked = new Set();
+    tbody.querySelectorAll('.member-checkbox:checked').forEach(cb => _prevChecked.add(cb.dataset.index));
     tbody.innerHTML = '';
 
     if (members.length === 0) {
@@ -434,6 +437,14 @@ function renderMembers() {
         `;
         tbody.appendChild(tr);
     });
+
+    // 보존했던 체크 상태 복원
+    if (_prevChecked.size > 0) {
+        tbody.querySelectorAll('.member-checkbox').forEach(cb => {
+            if (_prevChecked.has(cb.dataset.index)) cb.checked = true;
+        });
+    }
+    syncSelectAllState('members-tbody', '.member-checkbox', 'select-all-members');
 
     document.getElementById('total-members').textContent = members.length;
 }
@@ -566,6 +577,9 @@ function deleteMeeting() {
 // 회비 렌더링
 function renderDues() {
     const tbody = document.getElementById('dues-tbody');
+    // 재렌더 전 체크 상태 보존 (클라우드 동기화로 인한 자동 재렌더 시 체크 유지)
+    const _prevChecked = new Set();
+    tbody.querySelectorAll('.due-checkbox:checked').forEach(cb => _prevChecked.add(cb.dataset.index));
     tbody.innerHTML = '';
 
     if (!currentMeetingId) {
@@ -672,6 +686,30 @@ function renderDues() {
         지출: <span style="color: #ef4444;">${formatCurrency(totalExpense)}</span> /
         잔액: <span style="color: ${currentBalance >= 0 ? '#22c55e' : '#ef4444'}; font-weight: 700;">${formatCurrency(currentBalance)}</span>
     `;
+
+    // 보존했던 체크 상태 복원
+    if (_prevChecked.size > 0) {
+        tbody.querySelectorAll('.due-checkbox').forEach(cb => {
+            if (_prevChecked.has(cb.dataset.index)) cb.checked = true;
+        });
+    }
+    syncSelectAllState('dues-tbody', '.due-checkbox', 'select-all-dues');
+}
+
+// 전체 선택 체크박스 상태를 행 체크박스에 맞춰 동기화
+function syncSelectAllState(tbodyId, checkboxClass, selectAllId) {
+    const selAll = document.getElementById(selectAllId);
+    if (!selAll) return;
+    const tbody = document.getElementById(tbodyId);
+    const all = tbody.querySelectorAll(checkboxClass);
+    if (all.length === 0) {
+        selAll.checked = false;
+        selAll.indeterminate = false;
+        return;
+    }
+    const checkedCount = tbody.querySelectorAll(checkboxClass + ':checked').length;
+    selAll.checked = checkedCount === all.length;
+    selAll.indeterminate = checkedCount > 0 && checkedCount < all.length;
 }
 
 // 금액 포맷 (천 단위 콤마)
