@@ -1235,8 +1235,15 @@ function exportDuesToExcel() {
         '비고': ''
     });
 
-    // 모임 정보를 헤더에 추가
+    // 제목 입력받기
+    const defaultTitle = `${currentMeeting.name} 회비내역`;
+    const inputTitle = prompt('엑셀 제목을 입력하세요.', defaultTitle);
+    if (inputTitle === null) return; // 취소
+    const reportTitle = inputTitle.trim() || defaultTitle;
+
+    // 모임 정보를 헤더에 추가 (1행: 제목, 2행: 모임 정보, 3행: 빈 행)
     const headerData = [
+        { '모임': reportTitle }, // 제목
         { '모임': currentMeeting.name, '날짜': currentMeeting.date || '' },
         {}, // 빈 행
     ];
@@ -1244,8 +1251,11 @@ function exportDuesToExcel() {
     // 워크시트 생성
     const worksheet = XLSX.utils.json_to_sheet(headerData, { skipHeader: true });
 
-    // 데이터 추가
-    XLSX.utils.sheet_add_json(worksheet, excelData, { origin: 'A3', skipHeader: false });
+    // 제목 셀을 전체 열에 걸쳐 병합 (A1:G1)
+    worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
+
+    // 데이터 추가 (4행부터)
+    XLSX.utils.sheet_add_json(worksheet, excelData, { origin: 'A4', skipHeader: false });
 
     // 열 너비 설정
     worksheet['!cols'] = [
@@ -1264,7 +1274,8 @@ function exportDuesToExcel() {
 
     // 파일 다운로드
     const count = duesToExport.length === currentMeeting.dues.length ? '전체' : `선택${duesToExport.length}건`;
-    const fileName = `닻별_${currentMeeting.name}_회비내역_${count}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const safeTitle = reportTitle.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+    const fileName = `${safeTitle}_${count}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 }
 
@@ -1294,6 +1305,12 @@ function exportMembersToExcel() {
         }
     }
 
+    // 제목 입력받기
+    const defaultTitle = '닻별 회원명부';
+    const inputTitle = prompt('엑셀 제목을 입력하세요.', defaultTitle);
+    if (inputTitle === null) return; // 취소
+    const reportTitle = inputTitle.trim() || defaultTitle;
+
     // 엑셀용 데이터 준비
     const excelData = membersToExport.map((member, index) => ({
         '번호': index + 1,
@@ -1304,8 +1321,10 @@ function exportMembersToExcel() {
         '가입일': member.joinDate
     }));
 
-    // 워크시트 생성
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    // 워크시트 생성 (1행: 제목, 2행: 빈 행, 3행부터 표)
+    const worksheet = XLSX.utils.json_to_sheet([{ '번호': reportTitle }], { skipHeader: true });
+    worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }]; // A1:F1 병합
+    XLSX.utils.sheet_add_json(worksheet, excelData, { origin: 'A3', skipHeader: false });
 
     // 열 너비 설정
     worksheet['!cols'] = [
@@ -1323,7 +1342,8 @@ function exportMembersToExcel() {
 
     // 파일 다운로드
     const count = membersToExport.length === members.length ? '전체' : `선택${membersToExport.length}명`;
-    const fileName = `닻별_회원명부_${count}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const safeTitle = reportTitle.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+    const fileName = `${safeTitle}_${count}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 }
 
